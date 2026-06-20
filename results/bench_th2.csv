@@ -1,0 +1,2 @@
+backend,threads,steps,elapsed_sec,mean_latency_ms,forward_sec,sample_sec,tokens_per_sec,peak_rss_mb,memory_bytes
+avx2,2,2,58.031519,29015.76,55.779257,0.010052,0.034464,1845.96,1611707904

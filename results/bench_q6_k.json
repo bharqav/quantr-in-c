@@ -1,0 +1,12 @@
+{
+  "backend": "avx2",
+  "threads": 8,
+  "steps": 2,
+  "elapsed_sec": 79.255498,
+  "mean_latency_ms": 39627.75,
+  "forward_sec": 12.188592,
+  "sample_sec": 65.961970,
+  "tokens_per_sec": 0.025235,
+  "peak_rss_mb": 2088.16,
+  "memory_bytes": 1611707904
+}

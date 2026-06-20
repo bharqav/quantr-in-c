@@ -1,0 +1,16 @@
+[Unit]
+Description=Baremetal AI Inference Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/baremetal
+ExecStart=/usr/local/bin/inference --model /opt/baremetal/models/qwen3-30b-a3b-Q5_K_M.gguf --threads 8 --chat
+Restart=always
+RestartSec=3
+LimitMEMLOCK=infinity
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

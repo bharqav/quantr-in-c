@@ -1,0 +1,76 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    name: Build and Test (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux GCC (Primary)
+          - os: ubuntu-24.04
+            compiler: gcc
+            cxx_compiler: g++
+            flags: "-mavx2 -mfma"
+          
+          # Linux Clang (Secondary)
+          - os: ubuntu-24.04
+            compiler: clang
+            cxx_compiler: clang++
+            flags: "-mavx2 -mfma"
+            
+          # ARM64 Native (Linux)
+          - os: ubuntu-24.04-arm
+            compiler: gcc
+            cxx_compiler: g++
+            flags: "" # Native NEON
+            
+          # Windows MSVC
+          - os: windows-latest
+            compiler: cl
+            cxx_compiler: cl
+            flags: "/arch:AVX2"
+            
+          # macOS Apple Silicon
+          - os: macos-14
+            compiler: clang
+            cxx_compiler: clang++
+            flags: "" # Native NEON
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Environment (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        export CC=${{ matrix.compiler }}
+        export CXX=${{ matrix.cxx_compiler }}
+        export CFLAGS="-O3 -Wall -Wextra -std=c99 ${{ matrix.flags }}"
+        make clean
+        make all CFLAGS="$CFLAGS"
+
+    - name: Set up Environment (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . --config Release
+
+    - name: Run Unit Tests (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        make test
+
+    - name: Run Unit Tests (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cd build
+        ctest -C Release --output-on-failure
