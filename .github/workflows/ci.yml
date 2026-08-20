@@ -86,10 +86,11 @@ jobs:
     - name: Run Llama.cpp Conformance Verification
       if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.os == 'ubuntu-24.04'
       run: |
-        python3 scripts/setup_model.py --download smollm2-135m
+        python3 scripts/setup_model.py --download qwen2.5-0.5b
         git clone https://github.com/ggerganov/llama.cpp.git --depth 1
         cd llama.cpp
-        make -j4 llama-cli
+        cmake -B build
+        cmake --build build --config Release -j 4 --target llama-cli
         cd ..
-        export PATH=$PATH:$(pwd)/llama.cpp
+        export PATH=$PATH:$(pwd)/llama.cpp/build/bin
         python3 scripts/cross_verify.py
