@@ -82,3 +82,14 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         ctest --test-dir build -C Release --output-on-failure
+
+    - name: Run Llama.cpp Conformance Verification
+      if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.os == 'ubuntu-24.04'
+      run: |
+        python3 scripts/setup_model.py --download smollm2-135m
+        git clone https://github.com/ggerganov/llama.cpp.git --depth 1
+        cd llama.cpp
+        make -j4 llama-cli
+        cd ..
+        export PATH=$PATH:$(pwd)/llama.cpp
+        python3 scripts/cross_verify.py
