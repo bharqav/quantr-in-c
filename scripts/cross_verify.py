@@ -91,9 +91,9 @@ def verify_external_llama_cpp(model_path):
     prompt = "Hello"
     steps = 4
     
-    cmd_llama = [llama_cli, "-m", model_path, "-p", prompt, "-n", str(steps), "--temp", "0.0", "--no-display-prompt"]
+    cmd_llama = [llama_cli, "-m", model_path, "-p", prompt, "-n", str(steps)]
     try:
-        res = subprocess.run(cmd_llama, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
+        res = subprocess.run(cmd_llama, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
         llama_out = res.stdout.strip()
     except Exception as e:
         print(f"  [SKIP] Error invoking llama-cli: {e}")
