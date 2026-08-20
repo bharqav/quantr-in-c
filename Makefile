@@ -1,21 +1,53 @@
-CC := gcc
-CFLAGS := -O3 -Wall -Wextra -std=c99 -fopenmp -Iinclude
-LDFLAGS := -lm -fopenmp
+CC ?= gcc
+INCLUDES := -Iinclude
+CFLAGS ?= -O3 -Wall -Wextra -std=c99
+LDFLAGS ?= -lm
+
+UNAME_S := $(shell uname -s 2>/dev/null || echo Windows_NT)
 
 ifeq ($(OS),Windows_NT)
-	LDFLAGS += -lpsapi -lws2_32
-	EXE := .exe
-	LIB_SHARED := baremetal.dll
-	LIB_STATIC := libbaremetal.a
-	RM := del /Q /F
-	RUN := .\\
+    LDFLAGS += -lpsapi -lws2_32
+    EXE := .exe
+    LIB_SHARED := baremetal.dll
+    LIB_STATIC := libbaremetal.a
+    OPENMP_FLAG ?= -fopenmp
+    RPATH_FLAG :=
+    ifeq ($(findstring sh,$(SHELL)),sh)
+        RM := rm -f
+    else
+        RM := del /Q /F
+    endif
+    RUN := ./
+else ifeq ($(UNAME_S),Darwin)
+    EXE :=
+    LIB_SHARED := libbaremetal.dylib
+    LIB_STATIC := libbaremetal.a
+    RM := rm -f
+    RUN := ./
+    RPATH_FLAG := -Wl,-rpath,@loader_path -Wl,-rpath,.
+    ifneq ($(wildcard /opt/homebrew/opt/libomp/include),)
+        INCLUDES += -I/opt/homebrew/opt/libomp/include
+        LDFLAGS += -L/opt/homebrew/opt/libomp/lib -lomp
+        OPENMP_FLAG ?= -Xpreprocessor -fopenmp
+    else ifneq ($(wildcard /usr/local/opt/libomp/include),)
+        INCLUDES += -I/usr/local/opt/libomp/include
+        LDFLAGS += -L/usr/local/opt/libomp/lib -lomp
+        OPENMP_FLAG ?= -Xpreprocessor -fopenmp
+    else
+        OPENMP_FLAG ?=
+    endif
 else
-	EXE :=
-	LIB_SHARED := libbaremetal.so
-	LIB_STATIC := libbaremetal.a
-	RM := rm -f
-	RUN := ./
+    EXE :=
+    LIB_SHARED := libbaremetal.so
+    LIB_STATIC := libbaremetal.a
+    RM := rm -f
+    RUN := ./
+    OPENMP_FLAG ?= -fopenmp
+    RPATH_FLAG := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,.
 endif
+
+ALL_CFLAGS := $(CFLAGS) $(INCLUDES) $(OPENMP_FLAG)
+ALL_LDFLAGS := $(LDFLAGS) $(OPENMP_FLAG)
 
 TARGET := inference
 TARGET_LAUNCHER := quantr
@@ -48,24 +80,24 @@ amalgamate:
 	python scripts/amalgamate.py
 
 $(TARGET)$(EXE): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)$(EXE) $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) $(SRC) -o $(TARGET)$(EXE) $(ALL_LDFLAGS)
 
 $(TARGET_LAUNCHER)$(EXE): src/launcher.c
-	$(CC) $(CFLAGS) src/launcher.c -o $(TARGET_LAUNCHER)$(EXE) $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) src/launcher.c -o $(TARGET_LAUNCHER)$(EXE) $(ALL_LDFLAGS)
 
 $(TARGET_TESTS)$(EXE): $(TEST_SRC)
-	$(CC) $(CFLAGS) $(TEST_SRC) -o $(TARGET_TESTS)$(EXE) $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) $(TEST_SRC) -o $(TARGET_TESTS)$(EXE) $(ALL_LDFLAGS)
 
 $(LIB_SHARED): $(CORE_SRC)
-	$(CC) $(CFLAGS) -shared -fPIC $(CORE_SRC) -o $(LIB_SHARED) $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) -shared -fPIC $(CORE_SRC) -o $(LIB_SHARED) $(ALL_LDFLAGS)
 
 $(LIB_STATIC): $(CORE_SRC)
-	$(CC) $(CFLAGS) -c $(CORE_SRC)
+	$(CC) $(ALL_CFLAGS) -c $(CORE_SRC)
 	ar rcs $(LIB_STATIC) *.o
 	-$(RM) *.o
 
 $(TARGET_EXAMPLE)$(EXE): examples/minimal_embed.c $(LIB_SHARED)
-	$(CC) $(CFLAGS) examples/minimal_embed.c -L. -lbaremetal -o $(TARGET_EXAMPLE)$(EXE) $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) examples/minimal_embed.c -L. -lbaremetal $(RPATH_FLAG) -o $(TARGET_EXAMPLE)$(EXE) $(ALL_LDFLAGS)
 
 lib: $(LIB_SHARED) $(LIB_STATIC)
 
@@ -86,7 +118,7 @@ run: $(TARGET)$(EXE)
 
 smoke: $(TARGET)$(EXE)
 	$(RUN)$(TARGET)$(EXE) --init-dummy dummy.bin
-	$(RUN)$(TARGET)$(EXE) --model dummy.bin --steps 8 --temperature 0.7 --prompt-token 1 --backend avx2 --threads 4
+	$(RUN)$(TARGET)$(EXE) --model dummy.bin --steps 8 --temperature 0.7 --prompt-token 1 --backend avx2 --threads 4 --prompt "hello"
 	-$(RM) dummy.bin
 
 benchmark: $(TARGET)$(EXE)
