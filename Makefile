@@ -13,11 +13,7 @@ ifeq ($(OS),Windows_NT)
     OPENMP_FLAG ?= -fopenmp
     SHARED_FLAG := -shared
     RPATH_FLAG :=
-    ifeq ($(findstring sh,$(SHELL)),sh)
-        RM := rm -f
-    else
-        RM := del /Q /F
-    endif
+    RM := rm -f
     RUN := ./
 else ifeq ($(UNAME_S),Darwin)
     EXE :=
@@ -49,7 +45,7 @@ else
     RPATH_FLAG := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,.
 endif
 
-ALL_CFLAGS := $(CFLAGS) $(INCLUDES) $(OPENMP_FLAG)
+ALL_CFLAGS := $(CFLAGS) $(INCLUDES) $(OPENMP_FLAG) -fPIC
 ALL_LDFLAGS := $(LDFLAGS) $(OPENMP_FLAG)
 
 TARGET := inference
@@ -72,8 +68,7 @@ CORE_SRC := src/model.c \
             src/server.c \
             src/speculative.c
 
-SRC := src/main.c $(CORE_SRC)
-TEST_SRC := tests/tests.c $(CORE_SRC)
+CORE_OBJS := $(CORE_SRC:.c=.o)
 
 .PHONY: all clean smoke test fuzz benchmark run setup-model lib example amalgamate install
 
@@ -82,25 +77,32 @@ all: $(TARGET)$(EXE) $(TARGET_LAUNCHER)$(EXE) $(TARGET_TESTS)$(EXE) $(LIB_SHARED
 amalgamate:
 	python scripts/amalgamate.py
 
-$(TARGET)$(EXE): $(SRC)
-	$(CC) $(ALL_CFLAGS) $(SRC) -o $(TARGET)$(EXE) $(ALL_LDFLAGS)
+src/%.o: src/%.c
+	$(CC) $(ALL_CFLAGS) -c $< -o $@
 
-$(TARGET_LAUNCHER)$(EXE): src/launcher.c
-	$(CC) $(ALL_CFLAGS) src/launcher.c -o $(TARGET_LAUNCHER)$(EXE) $(ALL_LDFLAGS)
+tests/%.o: tests/%.c
+	$(CC) $(ALL_CFLAGS) -c $< -o $@
 
-$(TARGET_TESTS)$(EXE): $(TEST_SRC)
-	$(CC) $(ALL_CFLAGS) $(TEST_SRC) -o $(TARGET_TESTS)$(EXE) $(ALL_LDFLAGS)
+examples/%.o: examples/%.c
+	$(CC) $(ALL_CFLAGS) -c $< -o $@
 
-$(LIB_SHARED): $(CORE_SRC)
-	$(CC) $(ALL_CFLAGS) $(SHARED_FLAG) -fPIC $(CORE_SRC) -o $(LIB_SHARED) $(ALL_LDFLAGS)
+$(TARGET)$(EXE): src/main.o $(CORE_OBJS)
+	$(CC) $(ALL_CFLAGS) src/main.o $(CORE_OBJS) -o $(TARGET)$(EXE) $(ALL_LDFLAGS)
 
-$(LIB_STATIC): $(CORE_SRC)
-	$(CC) $(ALL_CFLAGS) -c $(CORE_SRC)
-	ar rcs $(LIB_STATIC) *.o
-	-$(RM) *.o
+$(TARGET_LAUNCHER)$(EXE): src/launcher.o
+	$(CC) $(ALL_CFLAGS) src/launcher.o -o $(TARGET_LAUNCHER)$(EXE) $(ALL_LDFLAGS)
 
-$(TARGET_EXAMPLE)$(EXE): examples/minimal_embed.c $(LIB_SHARED)
-	$(CC) $(ALL_CFLAGS) examples/minimal_embed.c -L. -lbaremetal $(RPATH_FLAG) -o $(TARGET_EXAMPLE)$(EXE) $(ALL_LDFLAGS)
+$(TARGET_TESTS)$(EXE): tests/tests.o $(CORE_OBJS)
+	$(CC) $(ALL_CFLAGS) tests/tests.o $(CORE_OBJS) -o $(TARGET_TESTS)$(EXE) $(ALL_LDFLAGS)
+
+$(LIB_SHARED): $(CORE_OBJS)
+	$(CC) $(ALL_CFLAGS) $(SHARED_FLAG) $(CORE_OBJS) -o $(LIB_SHARED) $(ALL_LDFLAGS)
+
+$(LIB_STATIC): $(CORE_OBJS)
+	ar rcs $(LIB_STATIC) $(CORE_OBJS)
+
+$(TARGET_EXAMPLE)$(EXE): examples/minimal_embed.o $(LIB_STATIC)
+	$(CC) $(ALL_CFLAGS) examples/minimal_embed.o $(LIB_STATIC) -o $(TARGET_EXAMPLE)$(EXE) $(ALL_LDFLAGS)
 
 lib: $(LIB_SHARED) $(LIB_STATIC)
 
@@ -128,4 +130,4 @@ benchmark: $(TARGET)$(EXE)
 	python scripts/benchmark_suite.py
 
 clean:
-	-$(RM) $(TARGET)$(EXE) $(TARGET_LAUNCHER)$(EXE) $(TARGET_TESTS)$(EXE) $(TARGET_EXAMPLE)$(EXE) $(LIB_SHARED) $(LIB_STATIC) *.o dummy.bin test_dummy.bin quantr.cfgo
+	-$(RM) $(TARGET)$(EXE) $(TARGET_LAUNCHER)$(EXE) $(TARGET_TESTS)$(EXE) $(TARGET_EXAMPLE)$(EXE) $(LIB_SHARED) $(LIB_STATIC) src/*.o tests/*.o examples/*.o *.o dummy.bin test_dummy.bin quantr.cfgo
