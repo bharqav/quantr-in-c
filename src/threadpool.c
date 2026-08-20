@@ -1,3 +1,7 @@
+#ifdef __linux__
+#define _GNU_SOURCE
+#endif
+
 #include "threadpool.h"
 
 #ifdef _OPENMP
@@ -7,7 +11,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #elif defined(__linux__)
-#define _GNU_SOURCE
 #include <pthread.h>
 #include <sched.h>
 #endif
