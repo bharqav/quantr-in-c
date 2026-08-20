@@ -50,7 +50,7 @@ ALL_LDFLAGS := $(LDFLAGS) $(OPENMP_FLAG)
 
 TARGET := inference
 TARGET_LAUNCHER := quantr
-TARGET_TESTS := tests
+TARGET_TESTS := run_tests
 TARGET_EXAMPLE := minimal_embed
 
 CORE_SRC := src/model.c \

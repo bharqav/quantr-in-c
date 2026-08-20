@@ -19,3 +19,7 @@ go.mod
 GTT
 README-storage-engine.md
 *.log
+inference
+quantr
+minimal_embed
+run_tests
