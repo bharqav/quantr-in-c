@@ -52,11 +52,22 @@ def verify_cross_backend_determinism(model_path):
         outputs[b] = out
         print(f"      Output: \"{out}\"")
     
-    # Compare outputs
-    ref_out = outputs["ref"]
+    # Compare outputs by only looking at the generated text
+    def extract_generated(out_str):
+        marker = "Generating"
+        idx = out_str.find(marker)
+        if idx != -1:
+            # find the end of the line
+            nl = out_str.find("\n", idx)
+            if nl != -1:
+                return out_str[nl+1:].strip()
+        return out_str
+        
+    ref_out = extract_generated(outputs["ref"])
     all_match = True
     for b in backends:
-        if outputs[b] != ref_out:
+        b_out = extract_generated(outputs[b])
+        if b_out != ref_out:
             print(f"  [MISMATCH] Backend '{b}' diverged from reference!")
             print(f"    REF : {ref_out}")
             print(f"    {b}   : {outputs[b]}")
