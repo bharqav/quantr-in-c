@@ -447,11 +447,12 @@ void matmul_q_fused(float* out, const float* x, const void* w, uint32_t type,
     // F32 weights: plain FP32 matmul (no quantization involved)
     if (type == 0) {
         const float* wf = (const float*)w;
+        int i;
 #ifdef _OPENMP
         int nth = threads > 0 ? threads : 1;
 #pragma omp parallel for num_threads(nth) schedule(static)
 #endif
-        for (int i = 0; i < n; i++) {
+        for (i = 0; i < n; i++) {
             const float* row = wf + (size_t)i * (size_t)d;
             float sum = 0.0f;
             for (int j = 0; j < d; j++) {
@@ -482,11 +483,12 @@ void matmul_q_fused(float* out, const float* x, const void* w, uint32_t type,
         default: row_bytes = (size_t)d * sizeof(float); break;
     }
 
+    int i;
 #ifdef _OPENMP
     int nth = threads > 0 ? threads : 1;
 #pragma omp parallel for num_threads(nth) schedule(static)
 #endif
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         const char* row_ptr = (const char*)w + (size_t)i * row_bytes;
         switch (type) {
             case 8:  // Q8_0: fused int8 dot product

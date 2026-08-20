@@ -49,10 +49,11 @@ void threadpool_parallel_for(ThreadPool* p, int start, int end, void (*fn)(int, 
         }
         return;
     }
+    int i;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(p->threads) schedule(static)
 #endif
-    for (int i = start; i < end; i++) {
+    for (i = start; i < end; i++) {
         fn(i, ctx);
     }
 }

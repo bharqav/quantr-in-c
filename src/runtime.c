@@ -132,11 +132,11 @@ float* forward_runtime(RuntimeContext* rt, Transformer* t, int token, int pos) {
         kv_store_row(s->value_cache, s->kv_cache_type, cache_offset, s->v, dim);
         memset(s->xb, 0, (size_t)dim * sizeof(float));
 
-        // Cache-Tiled GQA Attention
+            int kv_h;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(rt->options.num_threads > 0 ? rt->options.num_threads : 1) schedule(static)
 #endif
-        for (int kv_h = 0; kv_h < p->n_kv_heads; kv_h++) {
+        for (kv_h = 0; kv_h < p->n_kv_heads; kv_h++) {
             size_t kv_offset = (size_t)kv_h * (size_t)head_dim;
             
             for (int tpos = 0; tpos <= pos; tpos++) {
@@ -156,10 +156,11 @@ float* forward_runtime(RuntimeContext* rt, Transformer* t, int token, int pos) {
             }
         }
         
+    int h;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(rt->options.num_threads > 0 ? rt->options.num_threads : 1) schedule(static)
 #endif
-        for (int h = 0; h < p->n_heads; h++) {
+        for (h = 0; h < p->n_heads; h++) {
             float* att = s->att + (size_t)h * (size_t)p->seq_len;
             k->softmax(att, pos + 1);
         }
@@ -167,7 +168,7 @@ float* forward_runtime(RuntimeContext* rt, Transformer* t, int token, int pos) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(rt->options.num_threads > 0 ? rt->options.num_threads : 1) schedule(static)
 #endif
-        for (int kv_h = 0; kv_h < p->n_kv_heads; kv_h++) {
+        for (kv_h = 0; kv_h < p->n_kv_heads; kv_h++) {
             size_t kv_offset = (size_t)kv_h * (size_t)head_dim;
             
             for (int m = 0; m < kv_mul; m++) {

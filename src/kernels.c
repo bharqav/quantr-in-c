@@ -28,10 +28,11 @@ static void matmul_ref(float* out, const float* x, const float* w, int n, int d,
 }
 
 static void matmul_omp(float* out, const float* x, const float* w, int n, int d, int threads) {
+    int i;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads > 0 ? threads : 1) schedule(static)
 #endif
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         const float* row = w + (size_t)i * (size_t)d;
         float sum = 0.0f;
 #if defined(__AVX512F__)
@@ -73,10 +74,11 @@ static void matmul_omp(float* out, const float* x, const float* w, int n, int d,
 
 #if defined(__aarch64__) || defined(_M_ARM64)
 static void matmul_neon(float* out, const float* x, const float* w, int n, int d, int threads) {
+    int i;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads > 0 ? threads : 1) schedule(static)
 #endif
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         const float* row = w + (size_t)i * (size_t)d;
         float32x4_t acc0 = vdupq_n_f32(0.0f);
         float32x4_t acc1 = vdupq_n_f32(0.0f);
