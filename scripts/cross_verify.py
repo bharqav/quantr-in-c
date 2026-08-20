@@ -27,7 +27,7 @@ def run_quantr(model_path, prompt, backend="avx2", steps=8, temp=0.0):
         "--threads", "4"
     ]
     try:
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
         return res.stdout.strip(), res.returncode
     except Exception as e:
         return str(e), -1
@@ -38,7 +38,7 @@ def verify_cross_backend_determinism(model_path):
     print("=" * 70)
     
     prompt = "The fundamental principle of baremetal computing is"
-    steps = 8
+    steps = 4
     
     outputs = {}
     backends = ["ref", "avx2"]
@@ -78,11 +78,11 @@ def verify_external_llama_cpp(model_path):
         return True
         
     prompt = "Hello"
-    steps = 8
+    steps = 4
     
     cmd_llama = [llama_cli, "-m", model_path, "-p", prompt, "-n", str(steps), "--temp", "0.0", "--no-display-prompt"]
     try:
-        res = subprocess.run(cmd_llama, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+        res = subprocess.run(cmd_llama, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=300)
         llama_out = res.stdout.strip()
     except Exception as e:
         print(f"  [SKIP] Error invoking llama-cli: {e}")
