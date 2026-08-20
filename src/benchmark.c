@@ -1,4 +1,10 @@
+#ifdef __linux__
 #define _POSIX_C_SOURCE 200809L
+#endif
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE
+#endif
+
 #include "benchmark.h"
 
 #include <stdio.h>
