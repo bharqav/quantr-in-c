@@ -36,7 +36,7 @@ jobs:
           - os: windows-latest
             compiler: cl
             cxx_compiler: cl
-            flags: "/arch:AVX2"
+            flags: ""
             
           # macOS Apple Silicon
           - os: macos-14
@@ -53,6 +53,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libomp-dev
 
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install libomp || true
+
     - name: Set up Environment (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
@@ -62,21 +67,18 @@ jobs:
         make clean
         make all CFLAGS="$CFLAGS"
 
-    - name: Set up Environment (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build . --config Release
-
     - name: Run Unit Tests (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         make test
 
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build
+        cmake --build build --config Release
+
     - name: Run Unit Tests (Windows)
       if: runner.os == 'Windows'
       run: |
-        cd build
-        ctest -C Release --output-on-failure
+        ctest --test-dir build -C Release --output-on-failure

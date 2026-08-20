@@ -55,6 +55,7 @@ typedef struct {
     uint32_t type;
     void* value; // raw value pointer
     uint64_t len; // for strings and arrays
+    uint32_t arr_type;
 } gguf_kv;
 
 typedef struct {

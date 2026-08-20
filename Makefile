@@ -11,6 +11,7 @@ ifeq ($(OS),Windows_NT)
     LIB_SHARED := baremetal.dll
     LIB_STATIC := libbaremetal.a
     OPENMP_FLAG ?= -fopenmp
+    SHARED_FLAG := -shared
     RPATH_FLAG :=
     ifeq ($(findstring sh,$(SHELL)),sh)
         RM := rm -f
@@ -24,6 +25,7 @@ else ifeq ($(UNAME_S),Darwin)
     LIB_STATIC := libbaremetal.a
     RM := rm -f
     RUN := ./
+    SHARED_FLAG := -dynamiclib
     RPATH_FLAG := -Wl,-rpath,@loader_path -Wl,-rpath,.
     ifneq ($(wildcard /opt/homebrew/opt/libomp/include),)
         INCLUDES += -I/opt/homebrew/opt/libomp/include
@@ -42,6 +44,7 @@ else
     LIB_STATIC := libbaremetal.a
     RM := rm -f
     RUN := ./
+    SHARED_FLAG := -shared
     OPENMP_FLAG ?= -fopenmp
     RPATH_FLAG := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,.
 endif
@@ -89,7 +92,7 @@ $(TARGET_TESTS)$(EXE): $(TEST_SRC)
 	$(CC) $(ALL_CFLAGS) $(TEST_SRC) -o $(TARGET_TESTS)$(EXE) $(ALL_LDFLAGS)
 
 $(LIB_SHARED): $(CORE_SRC)
-	$(CC) $(ALL_CFLAGS) -shared -fPIC $(CORE_SRC) -o $(LIB_SHARED) $(ALL_LDFLAGS)
+	$(CC) $(ALL_CFLAGS) $(SHARED_FLAG) -fPIC $(CORE_SRC) -o $(LIB_SHARED) $(ALL_LDFLAGS)
 
 $(LIB_STATIC): $(CORE_SRC)
 	$(CC) $(ALL_CFLAGS) -c $(CORE_SRC)
