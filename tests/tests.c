@@ -3,6 +3,7 @@
  * @brief Comprehensive unit and integration test harness for Baremetal AI Engine.
  * Tests SIMD kernels, Quantization math (Q4_K, Q5_K, Q6_K, Q8_0), Tokenizer, and Engine E2E.
  */
+#define _POSIX_C_SOURCE 200809L
 
 #include <math.h>
 #include <stdio.h>
