@@ -9,7 +9,12 @@
 #else
 #include <unistd.h>
 #include <sys/statvfs.h>
+#if defined(__linux__)
 #include <sys/sysinfo.h>
+#elif defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 #endif
 
 typedef struct {
@@ -142,11 +147,20 @@ static void probe_hardware(HardwareInfo* hw) {
     }
 #else
     hw->cpu_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+#if defined(__linux__)
     struct sysinfo si;
     if (sysinfo(&si) == 0) {
         hw->total_ram_gb = (double)si.totalram * si.mem_unit / (1024.0 * 1024.0 * 1024.0);
         hw->free_ram_gb = (double)si.freeram * si.mem_unit / (1024.0 * 1024.0 * 1024.0);
     }
+#elif defined(__APPLE__)
+    int64_t physical_memory;
+    size_t length = sizeof(int64_t);
+    if (sysctlbyname("hw.memsize", &physical_memory, &length, NULL, 0) == 0) {
+        hw->total_ram_gb = (double)physical_memory / (1024.0 * 1024.0 * 1024.0);
+        hw->free_ram_gb = hw->total_ram_gb; /* macOS free ram requires host_statistics */
+    }
+#endif
     struct statvfs st;
     if (statvfs(".", &st) == 0) {
         hw->free_disk_gb = (double)st.f_bavail * st.f_frsize / (1024.0 * 1024.0 * 1024.0);
